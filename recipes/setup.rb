@@ -1,37 +1,29 @@
-user "deploy" do
-  comment "Deploy User"
-  home "/home/deploy"
-  shell "/bin/bash"
+deploy_group = 'deploy'
 
-  supports(:manage_home => true )
-end
+group deploy_group
 
-group "deploy" do
-  members ['deploy']
+user 'deploy' do
+  comment 'Deploy User'
+  group deploy_group
+  home '/home/deploy'
+  shell '/bin/bash'
+  manage_home true
 end
 
 if node[:deploy_users]
   node[:deploy_users].each do |deploy_user|
     user deploy_user do
       comment "Deploy User #{deploy_user}"
+      group deploy_user
       home "/home/#{deploy_user}"
-      shell "/bin/bash"
-
-      supports(:manage_home => true )
+      shell '/bin/bash'
+      manage_home true
     end
-
-    group deploy_user do
-      members [deploy_user]
-    end
-
   end
 end
 
-package "libffi-dev"
+package 'libffi-dev'
 
-include_recipe "rbenv::default"
-include_recipe "rbenv::ruby_build"
-include_recipe "rbenv::rbenv_vars"
+include_recipe 'rails::dependencies'
 
-include_recipe "rails::dependencies"
-include_recipe "rails::ruby_binaries"
+include_recipe 'rails::ruby'

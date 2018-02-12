@@ -25,6 +25,12 @@
 include_recipe "sudo"
 include_recipe "nginx"
 
+nginx_site 'default' do
+  action :disable
+end
+
+include_recipe 'rails::mysql'
+
 include_recipe "rails::setup"
 
 applications_root = node[:rails][:applications_root]
@@ -41,10 +47,9 @@ if node[:active_applications]
     app_env = app_info['app_env'] || {}
     app_env['RAILS_ENV'] = rails_env
 
-    rbenv_ruby app_info['ruby_version']
-
     rbenv_gem "bundler" do
-      ruby_version app_info['ruby_version']
+      version node['rails']['ruby']['bundler_version']
+      rbenv_version app_info['ruby_version']
     end
 
     directory "#{applications_root}/#{app}" do
@@ -129,20 +134,29 @@ if node[:active_applications]
       variables :name => app, :deploy_user => deploy_user, :number_of_workers => app_info['number_of_workers'] || 2
     end
 
-    template "/etc/init/#{app}.conf" do
-      mode 0644
-      source "unicorn_upstart.erb"
-      variables(
-        name: app,
-        rails_env: rails_env,
-        deploy_user: deploy_user,
-        application_root: application_root
-      )
+    if node['platform_version'] == '14.04'
+      template "/etc/init/#{app}.conf" do
+        mode 0644
+        source "unicorn_upstart.erb"
+        variables(
+          name: app,
+          rails_env: rails_env,
+          deploy_user: deploy_user,
+          application_root: application_root
+        )
+      end
+  
+      service "#{app}" do
+        provider Chef::Provider::Service::Upstart
+        action [ :enable ]
+      end
     end
 
-    service "#{app}" do
-      provider Chef::Provider::Service::Upstart
-      action [ :enable ]
+    poise_service app do
+      command "#{application_root}/current/bin/unicorn -D -c #{application_root}/current/config/unicorn.rb"
+      user 'deploy'
+      directory "#{application_root}/current"
+      environment RAILS_ENV: rails_env
     end
 
     nginx_site "#{app}.conf" do
@@ -154,7 +168,6 @@ if node[:active_applications]
       path ["#{applications_root}/#{app}/current/log/*.log"]
       frequency "daily"
       rotate 14
-      compress true
       create "644 #{deploy_user} #{deploy_user}"
     end
 

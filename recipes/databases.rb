@@ -1,5 +1,3 @@
-include_recipe "database"
-
 if node[:active_applications]
   node[:active_applications].each do |app, app_info|
     if app_info['database_info']
@@ -9,7 +7,6 @@ if node[:active_applications]
       database_password = database_info['password']
 
       if database_info['adapter'] =~ /mysql/
-        include_recipe 'database::mysql'
 
         mysql_connection_info = {:host => "localhost", :username => "root", :password => node['mysql']['server_root_password']}
 
