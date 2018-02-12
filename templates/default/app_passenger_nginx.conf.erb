@@ -1,0 +1,64 @@
+<%= @custom_configuration["before_server"] %>
+
+<% if @redirect_domain_names && @redirect_domain_names.any? %>
+server {
+  listen <%= node['nginx']['port'] || '80' %>;
+  server_name <%= @redirect_domain_names.join(' ') %>;
+  return 301 $scheme://<%= @domain_names.first %>$request_uri;
+}
+<% end %>
+
+<% if @redirect_domain_names && @redirect_domain_names.any? && @enable_ssl %>
+server {
+  listen 443 ssl;
+  server_name <%= @redirect_domain_names.join(' ') %>;
+  ssl_certificate <%= node['rails']['applications_root'] %>/<%= @name %>/shared/config/certificate.crt;
+  ssl_certificate_key <%= node['rails']['applications_root'] %>/<%= @name %>/shared/config/certificate.key;
+
+  ssl_protocols               TLSv1 TLSv1.1 TLSv1.2;
+  ssl_prefer_server_ciphers   on;
+  ssl_ciphers                 "EECDH+ECDSA+AESGCM EECDH+aRSA+AESGCM EECDH+ECDSA+SHA384 EECDH+ECDSA+SHA256 EECDH+aRSA+SHA384 EECDH+aRSA+SHA256 EECDH+aRSA+RC4 EECDH EDH+aRSA !RC4 !aNULL !eNULL !LOW !3DES !MD5 !EXP !PSK !SRP !DSS";
+
+  return 301 $scheme://<%= @domain_names.first %>$request_uri;
+}
+<% end %>
+
+server {
+  listen <%= node['nginx']['port'] || '80' %>;
+  server_name <%= @domain_names.join(' ') %>;
+  root <%= node['rails']['applications_root'] %>/<%= @name %>/current/public;
+
+  passenger_enabled on;
+  passenger_app_env <%= @rails_env %>;
+
+  <%= "client_max_body_size #{@client_max_body_size};" if @client_max_body_size.to_i != 0 %>
+
+  <%= @custom_configuration["server_main"] %>
+}
+
+<% if @enable_ssl %>
+
+server {
+  listen 443 ssl;
+
+  ssl_certificate <%= node['rails']['applications_root'] %>/<%= @name %>/shared/config/certificate.crt;
+  ssl_certificate_key <%= node['rails']['applications_root'] %>/<%= @name %>/shared/config/certificate.key;
+
+  ssl_protocols               TLSv1 TLSv1.1 TLSv1.2;
+  ssl_prefer_server_ciphers   on;
+  ssl_ciphers                 "EECDH+ECDSA+AESGCM EECDH+aRSA+AESGCM EECDH+ECDSA+SHA384 EECDH+ECDSA+SHA256 EECDH+aRSA+SHA384 EECDH+aRSA+SHA256 EECDH+aRSA+RC4 EECDH EDH+aRSA !RC4 !aNULL !eNULL !LOW !3DES !MD5 !EXP !PSK !SRP !DSS";
+
+  passenger_enabled on;
+  passenger_app_env <%= @rails_env %>;
+
+  <%= "client_max_body_size #{@client_max_body_size};" if @client_max_body_size.to_i != 0 %>
+
+  server_name <%= @domain_names.join(' ') %>;
+
+  root <%= node['rails']['applications_root'] %>/<%= @name %>/current/public;
+  <%= @custom_configuration["ssl_main"] %>
+}
+
+<% end %>
+
+<%= @custom_configuration["after_server"] %>

@@ -1,0 +1,69 @@
+<%= @custom_configuration["before_server"] %>
+
+<% if @redirect_domain_names && @redirect_domain_names.any? %>
+server {
+  listen <%= node['nginx']['port'] || '80' %>;
+  <% if @enable_ssl %>
+  listen 443 ssl;
+  <% end %>
+  server_name <%= @redirect_domain_names.join(' ') %>;
+  return 301 $scheme://<%= @domain_names.first %>$request_uri;
+}
+<% end %>
+
+server {
+  listen <%= node['nginx']['port'] || '80' %>;
+  server_name <%= @domain_names.join(' ') %>;
+  root <%= node['rails']['applications_root'] %>/<%= @name %>/current/public;
+
+  try_files $uri/index.html $uri.html $uri @app;
+
+  location @app {
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header Host $http_host;
+    proxy_redirect off;
+
+    proxy_pass http://<%= @name %>;
+    <%= @custom_configuration["server_app"] %>
+  }
+  <%= "client_max_body_size #{@client_max_body_size};" if @client_max_body_size.to_i != 0 %>
+  <%= @custom_configuration["server_main"] %>
+}
+
+<% if @enable_ssl %>
+
+server {
+  listen 443 ssl;
+
+  ssl_certificate <%= node['rails']['applications_root'] %>/<%= @name %>/shared/config/certificate.crt;
+  ssl_certificate_key <%= node['rails']['applications_root'] %>/<%= @name %>/shared/config/certificate.key;
+
+  server_name <%= @domain_names.join(' ') %>;
+
+  root <%= node['rails']['applications_root'] %>/<%= @name %>/current/public;
+
+  location / {
+    try_files $uri @app;
+  }
+
+  location @app {
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header Host $http_host;
+    proxy_set_header X-Forwarded-Proto https;
+    proxy_redirect off;
+
+    proxy_pass http://<%= @name %>;
+    <%= @custom_configuration["ssl_app"] %>
+  }
+  <%= "client_max_body_size #{@client_max_body_size};" if @client_max_body_size.to_i != 0 %>
+  <%= @custom_configuration["ssl_main"] %>
+}
+
+<% end %>
+
+upstream <%= @name %> {
+  server unix:<%= node['rails']['applications_root'] %>/<%= @name %>/shared/tmp/sockets/unicorn.sock;
+  <%= @custom_configuration["upstream"] %>
+}
+
+<%= @custom_configuration["after_server"] %>
