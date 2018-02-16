@@ -4,7 +4,7 @@ maintainer_email "hi3unb@gmail.com"
 license          "MIT"
 description      "Installs/Configures rails"
 long_description IO.read(File.join(File.dirname(__FILE__), 'README.md'))
-version          "0.5.0"
+version          "0.5.1"
 
 supports 'ubuntu', '>= 16.04'
 
@@ -16,3 +16,4 @@ depends "bluepill"
 depends "logrotate"
 depends 'poise-service', '~> 1.5.2'
 depends 'mysql', '~> 8.5.1'
+depends 'mysql2_chef_gem', '~> 2.1.0'
