@@ -8,7 +8,8 @@ if node[:active_applications]
 
       if database_info['adapter'] =~ /mysql/
 
-        mysql_connection_info = {:host => "localhost", :username => "root", :password => node['mysql']['server_root_password']}
+        mysql_host = app_info['database_info']['host'] || '127.0.0.1'
+        mysql_connection_info = {:host => mysql_host, :username => "root", :password => node['mysql']['server_root_password']}
 
         mysql_database database_name do
           connection(mysql_connection_info)
@@ -19,7 +20,7 @@ if node[:active_applications]
           username database_username
           password database_password
           database_name(database_name)
-          host "localhost"
+          host mysql_host
           action :grant
         end
       elsif database_info['adapter'] == 'postgresql'
