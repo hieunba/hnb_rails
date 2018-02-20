@@ -4,7 +4,11 @@
 # Copyright:: 2018, Nghiem Ba Hieu, All Rights Reserved.
 version = node['rails']['ruby']['ruby_version']
 
-rbenv_system_install 'system'
+global_prefix = node['rbenv']['global_prefix'] || '/opt/rbenv'
+
+rbenv_system_install 'system' do
+  global_prefix global_prefix
+end
 
 rbenv_ruby version do
   verbose true
