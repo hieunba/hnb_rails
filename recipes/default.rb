@@ -154,7 +154,7 @@ if node[:active_applications]
     end
 
     poise_service app do
-      command "#{application_root}/current/bin/unicorn -D -c #{application_root}/current/config/unicorn.rb"
+      command "#{application_root}/current/bin/unicorn -D -c #{application_root}/shared/config/unicorn.rb"
       user 'deploy'
       directory "#{application_root}/current"
       environment RAILS_ENV: rails_env
