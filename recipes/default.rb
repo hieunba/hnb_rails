@@ -153,11 +153,16 @@ if node[:active_applications]
       end
     end
 
+    poise_service_options app do
+      template 'systemd.service.erb'
+    end
+
     poise_service app do
       command "#{application_root}/current/bin/unicorn -D -c #{application_root}/shared/config/unicorn.rb"
       user 'deploy'
       directory "#{application_root}/current"
       environment RAILS_ENV: rails_env
+      ignore_failure true
     end
 
     nginx_site "#{app}.conf" do
