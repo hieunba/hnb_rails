@@ -16,6 +16,10 @@ end
 
 rbenv_global version
 
+link '/usr/bin/ruby' do
+  to "#{global_prefix}/shims/ruby"
+end
+
 rbenv_gem 'rails' do
   version node['rails']['ruby']['rails_version']
   rbenv_version version
