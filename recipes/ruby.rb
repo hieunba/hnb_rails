@@ -20,12 +20,6 @@ link '/usr/bin/ruby' do
   to "#{global_prefix}/shims/ruby"
 end
 
-rbenv_gem 'rails' do
-  version node['rails']['ruby']['rails_version']
-  rbenv_version version
-  timeout node['rails']['ruby']['timeout']
-end
-
 rbenv_gem 'bundler' do
   version node['rails']['ruby']['bundler_version']
   rbenv_version version
