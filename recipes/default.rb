@@ -153,16 +153,37 @@ if node[:active_applications]
       end
     end
 
-    poise_service_options app do
-      template 'systemd.service.erb'
+    execute 'systemctl daemon-reload' do
+      action :nothing
+      user 'root'
     end
 
-    poise_service app do
-      command "#{application_root}/current/bin/unicorn -D -c #{application_root}/shared/config/unicorn.rb"
-      user 'deploy'
-      directory "#{application_root}/current"
-      environment RAILS_ENV: rails_env
-      ignore_failure true
+    service_command = "#{application_root}/current/bin/unicorn -D -c #{application_root}/shared/config/unicorn.rb"
+    service_options = {}
+    service_options['auto_reload'] = true
+    service_options['reload_signal'] = 'HUP'
+    service_options['stop_signal'] = 'TERM'
+    service_options['restart_mode'] = 'on-failure'
+    service_options['directory'] = "#{application_root}/current"
+
+    template "/etc/systemd/system/#{app}.service" do
+      source 'systemd.service.erb'
+      notifies :run, 'execute[systemctl daemon-reload]', :immediately if service_options[:auto_reload]
+      variables(
+        name: app,
+        auto_reload: service_options['auto_reload'],
+        reload_signal: service_options['reload_signal'],
+        stop_signal: service_options['stop_signal'],
+        restart_mode: service_options['restart_mode'],
+        directory: service_options['directory'],
+        command: service_command,
+        user: 'deploy',
+        environment: { RAILS_ENV: rails_env }
+      )
+    end
+
+    service app do
+      action :enable
     end
 
     nginx_site "#{app}.conf" do
